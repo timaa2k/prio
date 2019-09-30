@@ -157,6 +157,25 @@ class TaskGrid(tf.Grid):
         return '    '
 
 
+class EditGrid(tf.Grid):
+
+    def __init__(self):
+        super().__init__()
+        self.cell_pad_char = ' '
+
+    def border_left_span(self, row_index: Union[int, None]) -> str:
+        return ''
+
+    def border_right_span(self, row_index: Union[int, None]) -> str:
+        return ''
+
+    def col_divider_span(self, row_index: Union[int, None]) -> str:
+        return '    '
+
+    def header_col_divider_span(self, row_index: Union[int, None]) -> str:
+        return '    '
+
+
 def format_table(
     columns: List[TaskDisplayOptions],
     rows: List[priolib.model.Task],
@@ -200,7 +219,7 @@ def prio(ctx, **kwargs):
                     row_objects.append(priolib.model.Task(id_='', status=status))
                 else:
                     row_objects.append(tasks[0])
-                return row_objects + [without_status(t) for t in tasks[1:]]
+                return row_objects + [t for t in tasks[1:]]
 
             tasks = \
                 format_row_objects(status='Done', tasks=plan.done) + \
@@ -244,48 +263,42 @@ def next(**kwargs):
 
 
 @prio.command()
-@click.option(
-    '--display-opts',
-    default='STATUS,TASK,AGE',
-    help='Task properties to display.',
-)
-def now(**kwargs):
-    try:
-        opts = parse_display_options(kwargs['display_opts'])
-    except TaskDisplayOptionParseError:
-        message = (
-            'Invalid display options received.\n'
-            'Display options must follow the format {options_format}'
-        ).format(options_format=DEFAULT_TASK_DISPLAY_OPTIONS)
-        print(message)
-    else:
-        api = priolib.client.APIClient(SERVER_ADDR)
-        plan = api.get_plan()
-
-        def without_status(task) -> priolib.model.Task:
-            task.status = ''
-            return task
-
-        def format_row_objects(
-            status: str,
-            tasks: List[priolib.model.Task],
-        ) -> List[priolib.model.Task]:
-            row_objects = []
-            # row_objects.append(priolib.model.Task(id_='', status=''))
-            if len(tasks) == 0:
-                row_objects.append(priolib.model.Task(id_='', status=status))
-            else:
-                row_objects.append(tasks[0])
-            return row_objects + [without_status(t) for t in tasks[1:]]
-
-        tasks = \
-            format_row_objects(status='Done', tasks=plan.done) + \
-            format_row_objects(status='Today', tasks=plan.today) + \
-            format_row_objects(status='Todo', tasks=plan.todo) + \
-            format_row_objects(status='Blocked', tasks=plan.blocked) + \
-            format_row_objects(status='Later', tasks=plan.later)
-
-        print(format_table(opts, [TaskRowObject.From_task(t) for t in tasks]))
+def edit(**kwargs):
+    api = priolib.client.APIClient(SERVER_ADDR)
+    plan = api.get_plan()
+    opts = parse_display_options('STATUS,TASK,ID')
+    tasks = \
+        plan.done + \
+        plan.today + \
+        plan.todo + \
+        plan.blocked + \
+        plan.later
+    cols = task_col_obj(opts)
+    rows = [TaskRowObject.From_task(t) for t in tasks]
+    table = tf.generate_table(rows, cols, grid_style=EditGrid())
+    message = click.edit(table)
+    if message is None:
+        return
+    p = priolib.model.Plan([], [], [], [], [])
+    for line in message.split('\n')[:-2]:
+        tokens = line.split()
+        print(tokens)
+        status = tokens[0]
+        t = priolib.model.Task(
+            status=status,
+            id_=tokens[-1],
+        )
+        if status == 'Done':
+            p.done.append(t)
+        if status == 'Today':
+            p.today.append(t)
+        if status == 'Todo':
+            p.todo.append(t)
+        if status == 'Blocked':
+            p.blocked.append(t)
+        if status == 'Later':
+            p.later.append(t)
+    api.update_plan(p)
 
 
 @prio.command()
