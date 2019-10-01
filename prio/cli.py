@@ -48,7 +48,32 @@ class TaskRowObject(object):
 
     def get_age_days(self) -> str:
         if self.modified is not None:
-            return str(datetime.datetime.now().day - self.modified.day) + 'd'
+            age = datetime.datetime.now(datetime.timezone.utc) - self.modified
+            age_minutes = age.seconds / 60
+            hours = int(age_minutes // 60)
+            minutes = int(age_minutes % 60)
+            seconds = int(age.seconds % 60)
+            a = [
+                (age.days, 'd'),
+                (hours, 'h'),
+                (minutes, 'm'),
+                (seconds, 's'),
+            ]
+            age_string = ''
+            count = 0
+            i = 0
+            while i < len(a) - 1:
+                if a[i][0] < 1:
+                    i += 1
+                    continue
+                age_string += str(a[i][0]) + a[i][1]
+                if count == 1:
+                    return age_string
+                else:
+                    i += 1
+                    count += 1
+            age_string += f'{seconds}s'
+            return age_string
         return ''
 
 
@@ -102,7 +127,7 @@ def task_col_obj(
         TaskDisplayOptions.PRIORITY: len('2147483647'),
         TaskDisplayOptions.CREATED: len('1996-12-19'),
         TaskDisplayOptions.MODIFIED: len('1996-12-19'),
-        TaskDisplayOptions.AGE: len('99d'),
+        TaskDisplayOptions.AGE: len('99d60m'),
     }
     variable_width_opts = 0
     fixed_width = 0
