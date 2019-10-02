@@ -223,7 +223,15 @@ def prio(ctx, **kwargs):
             print(message)
         else:
             api = priolib.client.APIClient(SERVER_ADDR)
-            plan = api.get_plan()
+            try:
+                plan = api.get_plan()
+            except priolib.client.ConnectionError:
+                print(f'Unable to connect to server {SERVER_ADDR}.')
+                return
+            except priolib.client.APIError as exc:
+                print(exc.message)
+                print(exc.details)
+                return
 
             def without_status(task) -> priolib.model.Task:
                 task.status = ''
@@ -268,7 +276,16 @@ def next(**kwargs):
         print(message)
     else:
         api = priolib.client.APIClient(SERVER_ADDR)
-        plan = api.get_plan()
+        try:
+            plan = api.get_plan()
+        except priolib.client.ConnectionError:
+            print(f'Unable to connect to server {SERVER_ADDR}.')
+            return
+        except priolib.client.APIError as exc:
+            print(exc.message)
+            print(exc.details)
+            return
+
         tasks = \
             plan.today + \
             plan.todo + \
@@ -285,7 +302,16 @@ def next(**kwargs):
 @prio.command()
 def edit(**kwargs):
     api = priolib.client.APIClient(SERVER_ADDR)
-    plan = api.get_plan()
+    try:
+        plan = api.get_plan()
+    except priolib.client.ConnectionError:
+        print(f'Unable to connect to server {SERVER_ADDR}.')
+        return
+    except priolib.client.APIError as exc:
+        print(exc.message)
+        print(exc.details)
+        return
+
     opts = parse_display_options('STATUS,TASK,ID')
     tasks = \
         plan.done + \
@@ -318,7 +344,16 @@ def edit(**kwargs):
             p.blocked.append(t)
         if status == 'Later':
             p.later.append(t)
-    api.update_plan(p)
+
+    try:
+        api.update_plan(p)
+    except priolib.client.ConnectionError:
+        print(f'Unable to connect to server {SERVER_ADDR}.')
+        return
+    except priolib.client.APIError as exc:
+        print(exc.message)
+        print(exc.details)
+        return
 
 
 @prio.command()
@@ -338,7 +373,16 @@ def history(**kwargs):
         print(message)
     else:
         api = priolib.client.APIClient(SERVER_ADDR)
-        tasks = api.list_tasks()
+        try:
+            tasks = api.list_tasks()
+        except priolib.client.ConnectionError:
+            print(f'Unable to connect to server {SERVER_ADDR}.')
+            return
+        except priolib.client.APIError as exc:
+            print(exc.message)
+            print(exc.details)
+            return
+
         print(format_table(opts, [TaskRowObject.From_task(t) for t in tasks]))
 
 
@@ -348,7 +392,16 @@ def history(**kwargs):
 @click.option('--target', prompt='URL', help='Task target URL.')
 def add(status, title, target):
     api = priolib.client.APIClient(SERVER_ADDR)
-    task_id = api.create_task(title=title, target=target, status=status)
+    try:
+        task_id = api.create_task(title=title, target=target, status=status)
+    except priolib.client.ConnectionError:
+        print(f'Unable to connect to server {SERVER_ADDR}.')
+        return
+    except priolib.client.APIError as exc:
+        print(exc.message)
+        print(exc.details)
+        return
+
     print(f'Task {task_id} created.')
 
 
@@ -359,12 +412,21 @@ def add(status, title, target):
 @click.option('--status', default=None, help='Task status.')
 def update(task_id, title, target, status):
     api = priolib.client.APIClient(SERVER_ADDR)
-    api.update_task(priolib.model.Task(
-        id_=task_id,
-        title=title,
-        target=target,
-        status=status,
-    ))
+    try:
+        api.update_task(priolib.model.Task(
+            id_=task_id,
+            title=title,
+            target=target,
+            status=status,
+        ))
+    except priolib.client.ConnectionError:
+        print(f'Unable to connect to server {SERVER_ADDR}.')
+        return
+    except priolib.client.APIError as exc:
+        print(exc.message)
+        print(exc.details)
+        return
+
     print(f'Task {task_id} updated.')
 
 
@@ -372,7 +434,16 @@ def update(task_id, title, target, status):
 @click.argument('task-id')
 def delete(task_id):
     api = priolib.client.APIClient(SERVER_ADDR)
-    api.delete_task(task_id=task_id)
+    try:
+        api.delete_task(task_id=task_id)
+    except priolib.client.ConnectionError:
+        print(f'Unable to connect to server {SERVER_ADDR}.')
+        return
+    except priolib.client.APIError as exc:
+        print(exc.message)
+        print(exc.details)
+        return
+
     print(f'Task {task_id} deleted.')
 
 
