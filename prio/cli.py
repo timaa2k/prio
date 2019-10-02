@@ -14,7 +14,7 @@ import priolib.model
 
 SERVER_ADDR = 'http://localhost:8080'
 TERMINAL_COLUMNS = shutil.get_terminal_size((80, 20)).columns
-DEFAULT_TASK_DISPLAY_OPTIONS = 'ID,TASK,URL,STATUS,PRIORITY,CREATED,MODIFIED,AGE'
+DEFAULT_TASK_DISPLAY_OPTIONS = 'ID,TASK,URL,STATUS,CREATED,MODIFIED,AGE'
 
 
 class TaskRowObject(object):
@@ -24,7 +24,6 @@ class TaskRowObject(object):
         self.title = ''
         self.target = ''
         self.status = ''
-        self.priority = ''
         self.created = None
         self.modified = None
 
@@ -35,7 +34,6 @@ class TaskRowObject(object):
         o.title = t.title
         o.target = t.target
         o.status = t.status
-        o.priority = t.priority
         o.created = t.created
         o.modified = t.modified
         return o
@@ -82,10 +80,9 @@ class TaskDisplayOptions(enum.Enum):
     TASK = 2
     URL = 3
     STATUS = 4
-    PRIORITY = 5
-    CREATED = 6
-    MODIFIED = 7
-    AGE = 8
+    CREATED = 5
+    MODIFIED = 6
+    AGE = 7
 
 
 class TaskDisplayOptionParseError(Exception):
@@ -114,7 +111,6 @@ def task_col_obj(
         TaskDisplayOptions.TASK: 'title',
         TaskDisplayOptions.URL: 'target',
         TaskDisplayOptions.STATUS: 'status',
-        TaskDisplayOptions.PRIORITY: 'priority',
         TaskDisplayOptions.CREATED: 'get_created',
         TaskDisplayOptions.MODIFIED: 'get_modified',
         TaskDisplayOptions.AGE: 'get_age_days',
@@ -124,7 +120,6 @@ def task_col_obj(
         TaskDisplayOptions.TASK: 0,
         TaskDisplayOptions.URL: 0,
         TaskDisplayOptions.STATUS: len('Blocked'),
-        TaskDisplayOptions.PRIORITY: len('2147483647'),
         TaskDisplayOptions.CREATED: len('1996-12-19'),
         TaskDisplayOptions.MODIFIED: len('1996-12-19'),
         TaskDisplayOptions.AGE: len('99d60m'),
@@ -244,7 +239,7 @@ def prio(ctx, **kwargs):
                     row_objects.append(priolib.model.Task(id_='', status=status))
                 else:
                     row_objects.append(tasks[0])
-                return row_objects + [t for t in tasks[1:]]
+                return row_objects + [without_status(t) for t in tasks[1:]]
 
             tasks = \
                 format_row_objects(status='Done', tasks=plan.done) + \
@@ -362,15 +357,13 @@ def add(status, title, target):
 @click.option('--title', default=None, help='Task title.')
 @click.option('--target', default=None, help='Task target URL.')
 @click.option('--status', default=None, help='Task status.')
-@click.option('--priority', type=int, default=None, help='Task priority within status.')
-def update(task_id, title, target, status, priority):
+def update(task_id, title, target, status):
     api = priolib.client.APIClient(SERVER_ADDR)
     api.update_task(priolib.model.Task(
         id_=task_id,
         title=title,
         target=target,
         status=status,
-        priority=priority,
     ))
     print(f'Task {task_id} updated.')
 
