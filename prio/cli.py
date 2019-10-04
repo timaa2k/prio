@@ -301,6 +301,7 @@ def next(**kwargs):
 
 @prio.command()
 def edit(**kwargs):
+    # FIXME: Compare plan afterwards before submitting.
     api = priolib.client.APIClient(SERVER_ADDR)
     try:
         plan = api.get_plan()
