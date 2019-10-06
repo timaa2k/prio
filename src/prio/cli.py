@@ -2,7 +2,7 @@ import datetime
 import enum
 import shutil
 import webbrowser
-from typing import Iterable, List, Union
+from typing import Any, Iterable, List, Union
 
 import click
 import tableformatter as tf
@@ -154,7 +154,7 @@ def task_col_obj(
 
 class TaskGrid(tf.Grid):
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.show_header = True
         self.border_top = True
@@ -178,7 +178,7 @@ class TaskGrid(tf.Grid):
 
 class EditGrid(tf.Grid):
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.cell_pad_char = ' '
 
@@ -198,7 +198,7 @@ class EditGrid(tf.Grid):
 def format_table(
     columns: List[TaskDisplayOptions],
     rows: List[priolib.model.Task],
-) -> str:
+) -> Union[str, Any]:
     cols = task_col_obj(columns)
     return tf.generate_table(rows, cols, grid_style=TaskGrid())
 
@@ -210,7 +210,7 @@ def format_table(
     default='STATUS,TASK,AGE',
     help='Task properties to display.',
 )
-def prio(ctx, **kwargs):
+def prio(ctx: click.Context, **kwargs: str) -> None:
     if ctx.invoked_subcommand is None:
         try:
             opts = parse_display_options(kwargs['display_opts'])
@@ -232,7 +232,9 @@ def prio(ctx, **kwargs):
                 print(exc.details)
                 return
 
-            def without_status(task) -> priolib.model.Task:
+            def without_status(
+                task: priolib.model.Task,
+            ) -> priolib.model.Task:
                 task.status = ''
                 return task
 
@@ -264,11 +266,11 @@ def prio(ctx, **kwargs):
     default='TASK,URL',
     help='Task properties to display.',
 )
-def next(**kwargs):
+def next(**kwargs: str) -> None:
     try:
         opts = parse_display_options(kwargs['display_opts'])
     except TaskDisplayOptionParseError:
-        essage = (
+        message = (
             'Invalid display options received.\n'
             'Display options must follow the format {options_format}'
         ).format(options_format=DEFAULT_TASK_DISPLAY_OPTIONS)
@@ -299,7 +301,7 @@ def next(**kwargs):
 
 
 @prio.command()
-def edit(**kwargs):
+def edit(**kwargs: str) -> None:
     # FIXME: Compare plan afterwards before submitting.
     api = priolib.client.APIClient(SERVER_ADDR)
     try:
@@ -362,7 +364,7 @@ def edit(**kwargs):
     default='ID,TASK,CREATED,MODIFIED',
     help='Task properties to display.',
 )
-def history(**kwargs):
+def history(**kwargs: str) -> None:
     try:
         opts = parse_display_options(kwargs['display_opts'])
     except TaskDisplayOptionParseError:
@@ -390,7 +392,7 @@ def history(**kwargs):
 @click.option('--status', default='Todo', help='Task status.')
 @click.option('--title', prompt='Title', help='Task title.')
 @click.option('--target', prompt='URL', help='Task target URL.')
-def add(status, title, target):
+def add(status: str, title: str, target: str) -> None:
     api = priolib.client.APIClient(SERVER_ADDR)
     try:
         task_id = api.create_task(title=title, target=target, status=status)
@@ -410,7 +412,7 @@ def add(status, title, target):
 @click.option('--title', default=None, help='Task title.')
 @click.option('--target', default=None, help='Task target URL.')
 @click.option('--status', default=None, help='Task status.')
-def update(task_id, title, target, status):
+def update(task_id: str, title: str, target: str, status: str) -> None:
     api = priolib.client.APIClient(SERVER_ADDR)
     try:
         api.update_task(priolib.model.Task(
@@ -432,7 +434,7 @@ def update(task_id, title, target, status):
 
 @prio.command()
 @click.argument('task-id')
-def delete(task_id):
+def delete(task_id: str) -> None:
     api = priolib.client.APIClient(SERVER_ADDR)
     try:
         api.delete_task(task_id=task_id)
