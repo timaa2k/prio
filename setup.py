@@ -1,21 +1,57 @@
+import pathlib
 import setuptools
+from typing import List
 
-with open("README.rst", "r") as fh:
-    long_description = fh.read()
+
+def _get_dependencies(requirements_file: pathlib.Path) -> List[str]:
+    """
+    Return requirements from a requirements file.
+    This expects a requirements file with no ``--find-links`` lines.
+    """
+    lines = requirements_file.read_text().strip().split('\n')
+    deps = []
+    for dep in lines:
+        if dep.startswith('#'):
+            continue
+        if dep.startswith('git+https://'):
+            pkg_string = dep.split('#egg=')[1]
+            pkg, version = pkg_string.split('-')
+            dep = pkg + ' @ ' + dep
+        deps.append(dep)
+    return deps
+
+
+INSTALL_REQUIRES = _get_dependencies(
+    requirements_file=pathlib.Path('requirements.txt'),
+)
+
+DEV_REQUIRES = _get_dependencies(
+    requirements_file=pathlib.Path('dev-requirements.txt'),
+)
+
+LONG_DESCRIPTION = pathlib.Path('README.rst').read_text()
 
 setuptools.setup(
     name="prio",
     version="0.1.0",
     author="Tim Weidner",
     author_email="timaa2k@gmail.com",
-    description="TaskPrio client library",
-    long_description=long_description,
+    description="TaskPrio CLI",
+    long_description=LONG_DESCRIPTION,
     long_description_content_type="text/x-rst",
     url="https://github.com/timaa2k/prio",
-    packages=setuptools.find_packages(),
+    include_package_data=True,
+    packages=setuptools.find_packages(where='src'),
+    package_dir={'': 'src'},
+    zip_safe=False,
+    install_requires=INSTALL_REQUIRES + ['priolib @ git+https://github.com/timaa2k/priolib@master#egg=priolib-0.1.0'],
+    extras_require={
+        'dev': DEV_REQUIRES,
+    },
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: GPLv3 License",
         "Operating System :: OS Independent",
     ],
+    dependency_links=[],
 )

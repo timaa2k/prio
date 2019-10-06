@@ -6,7 +6,6 @@ from typing import Iterable, List, Union
 
 import click
 import tableformatter as tf
-from colorama import Back
 
 import priolib.client
 import priolib.model
